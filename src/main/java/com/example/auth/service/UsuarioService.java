@@ -1,26 +1,38 @@
 package com.example.auth.service;
 
 import com.example.auth.model.Usuario;
+import com.example.auth.repository.UsuarioRepository;  // Importe!
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UsuarioService {
 
-    private final List<Usuario> usuarios = new ArrayList<>();
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
-    public UsuarioService() {
-        // Usuários cadastrados na "base"
-        usuarios.add(new Usuario("06950708190", "1234"));
-        usuarios.add(new Usuario("12345678900", "senha123"));
-    }
-
+    // METODO PARA AUTENTICAR USUARIO
     public boolean autenticar(String cpf, String senha) {
-        return usuarios.stream()
-                .anyMatch(u -> u.getCpf().equals(cpf) && u.getSenha().equals(senha));
+        Optional<Usuario> usuarioOtp = usuarioRepository.findById(cpf); // BUSCAR USUARIO POR CPF
+        if (usuarioOtp.isPresent()) {
+            Usuario u = usuarioOtp.get();
+            return u.getSenha().equals(senha); // VALIDA SE A SENHA COINCIDE E RETORNA TRUE
+        }
+        return false;
     }
+
+    public boolean cadastrarUsuario(Usuario novoUsuario) {
+        if (usuarioRepository.existsById(novoUsuario.getCpf())) { // VALIDA SE O USER JÁ EXISTE
+            return false;
+        }
+        usuarioRepository.save(novoUsuario); // CASO NÃO, SALVA NO BANCO
+        return true;
+    }
+
+
+
 }
 
 
