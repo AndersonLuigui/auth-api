@@ -1,10 +1,11 @@
 package com.example.auth.service;
 
 import com.example.auth.model.Usuario;
-import com.example.auth.repository.UsuarioRepository;  // Importe!
+import com.example.auth.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
 
 @Service
@@ -13,26 +14,28 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // METODO PARA AUTENTICAR USUARIO
+    // BCrypt com cost 12 → padrão seguro 2025
+    private final PasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+    // AUTENTICAR
     public boolean autenticar(String cpf, String senha) {
-        Optional<Usuario> usuarioOtp = usuarioRepository.findById(cpf); // BUSCAR USUARIO POR CPF
-        if (usuarioOtp.isPresent()) {
-            Usuario u = usuarioOtp.get();
-            return u.getSenha().equals(senha); // VALIDA SE A SENHA COINCIDE E RETORNA TRUE
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(cpf);
+        if (usuarioOpt.isPresent()) {
+            return encoder.matches(senha, usuarioOpt.get().getSenha());
         }
         return false;
     }
 
+    // CADASTRAR
     public boolean cadastrarUsuario(Usuario novoUsuario) {
-        if (usuarioRepository.existsById(novoUsuario.getCpf())) { // VALIDA SE O USER JÁ EXISTE
+        if (usuarioRepository.existsById(novoUsuario.getCpf())) {
             return false;
         }
-        usuarioRepository.save(novoUsuario); // CASO NÃO, SALVA NO BANCO
+
+        // AQUI ELE CRIPTOGRAFA A SENHA ANTES DE SALVAR
+        novoUsuario.setSenha(encoder.encode(novoUsuario.getSenha()));
+
+        usuarioRepository.save(novoUsuario);
         return true;
     }
-
-
-
 }
-
-

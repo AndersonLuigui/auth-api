@@ -3,6 +3,7 @@ package com.example.auth.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,27 +13,31 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // Chave forte (mínimo 256 bits = 32 caracteres pra HS256)
-    private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(
-            "minha-chave-secreta-super-foda-e-longa-12345678901234567890".getBytes(StandardCharsets.UTF_8)
-    );
+    // Lê a chave do application.properties ou do Render
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     private final long EXPIRACAO = 1000L * 60 * 60 * 8; // 8 horas
+
+    // Método que cria a chave a partir da string que vem do properties
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
 
     // GERA O TOKEN
     public String gerarToken(String cpf) {
         return Jwts.builder()
-                .setSubject(cpf)  // ← ERA .subject() ANTES, AGORA .setSubject()
+                .setSubject(cpf)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRACAO))
-                .signWith(SECRET_KEY)
+                .signWith(getSigningKey())  // ← agora usa a chave do properties
                 .compact();
     }
 
     // VALIDA E PEGA O CPF
     public String extrairCpf(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(SECRET_KEY)
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -43,7 +48,7 @@ public class JwtUtil {
     public boolean isTokenValido(String token) {
         try {
             Jwts.parser()
-                    .verifyWith(SECRET_KEY)
+                    .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token);
             return true;
