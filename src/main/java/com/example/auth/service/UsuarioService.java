@@ -27,15 +27,44 @@ public class UsuarioService {
     }
 
     // CADASTRAR
+
     public boolean cadastrarUsuario(Usuario novoUsuario) {
+        // Limite de 100 usuários
+        if (usuarioRepository.count() >= 100) {
+            return false; // ou lança exceção
+        }
+
         if (usuarioRepository.existsById(novoUsuario.getCpf())) {
             return false;
         }
 
-        // AQUI ELE CRIPTOGRAFA A SENHA ANTES DE SALVAR
         novoUsuario.setSenha(encoder.encode(novoUsuario.getSenha()));
-
         usuarioRepository.save(novoUsuario);
         return true;
+    }
+
+    // DELETAR
+    public boolean deletarUsuario(String cpf) {
+        if (usuarioRepository.existsById(cpf)) {
+            usuarioRepository.deleteById(cpf);
+            return true;
+        }
+        return  false;
+    }
+
+    // UPDATE SENHA SERVICE - LOGICA
+    public boolean atualizarSenha(String cpf, String novaSenha) {
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(cpf);
+
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+
+            usuario.setSenha(encoder.encode(novaSenha));
+
+            usuarioRepository.save(usuario);
+            return true;
+        }
+
+        return false;
     }
 }
